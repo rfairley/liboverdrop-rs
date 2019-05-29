@@ -1,7 +1,11 @@
-errors {
+#[macro_use]
+extern crate error_chain;
+
+mod errors {
     error_chain!{}
 }
 
+use log::trace;
 use std::{collections, fs, path};
 
 pub struct OverdropConf {

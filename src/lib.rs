@@ -1,51 +1,7 @@
-use crate::config::fragments;
-use failure::{Fallible, ResultExt};
-use log::{debug, trace};
-use serde::Serialize;
-
-/// Runtime configuration holding environmental inputs.
-#[derive(Debug, Serialize)]
-pub(crate) struct ConfigInput {
-    pub(crate) cincinnati: CincinnatiInput,
-    pub(crate) updates: UpdateInput,
-    pub(crate) identity: IdentityInput,
+errors {
+    error_chain!{}
 }
 
-impl ConfigInput {
-    /// Read config fragments and merge them into a single config.
-    pub(crate) fn read_configs(dirs: &[&str], app_name: &str) -> Fallible<Self> {
-        use std::io::Read;
-
-        let mut fragments = Vec::new();
-        for prefix in dirs {
-            let dir = format!("{}/{}/config.d", prefix, app_name);
-            debug!("scanning configuration directory '{}'", dir);
-
-            let wildcard = format!("{}/*.toml", dir);
-            let toml_files = glob::glob(&wildcard)?;
-            for fpath in toml_files.filter_map(Result::ok) {
-                trace!("reading config fragment '{}'", fpath.display());
-
-                let fp = std::fs::File::open(&fpath)
-                    .context(format!("failed to open file '{}'", fpath.display()))?;
-                let mut bufrd = std::io::BufReader::new(fp);
-                let mut content = vec![];
-                bufrd
-                    .read_to_end(&mut content)
-                    .context(format!("failed to read content of '{}'", fpath.display()))?;
-                let frag: fragments::ConfigFragment =
-                    toml::from_slice(&content).context("failed to parse TOML")?;
-
-                fragments.push(frag);
-            }
-        }
-
-        let cfg = Self::merge_fragments(fragments);
-        Ok(cfg)
-    }
-}
-
-use super::errors;
 use std::{collections, fs, path};
 
 pub struct OverdropConf {
@@ -84,10 +40,13 @@ impl OverdropConf {
                 let fpath = entry.path();
                 let fname = entry.file_name().into_string().unwrap();
 
+                // TODO: also have globbing option
+                // TODO: make option
                 // Ignore dotfiles.
                 if fname.starts_with('.') {
                     continue;
                 };
+                // TODO: make option
                 // Ignore non-TOML.
                 if !fname.ends_with(".toml") {
                     continue;

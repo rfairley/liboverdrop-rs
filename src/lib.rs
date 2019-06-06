@@ -13,19 +13,31 @@ pub struct OverdropConf {
 }
 
 impl OverdropConf {
-    pub fn new(basedirs: &[path::PathBuf], reldir: &str, version: Option<u32>) -> Self {
-        let mut dirs = Vec::with_capacity(basedirs.len());
-        let ver = version.unwrap_or(0);
-        for bdir in basedirs {
+    pub fn new(
+        base_dirs: &[path::PathBuf],
+        config_path: &str,
+    ) -> Self {
+        let mut dirs = Vec::with_capacity(base_dirs.len());
+        for bdir in base_dirs {
             let mut dpath = path::PathBuf::from(bdir);
-            dpath.push(reldir.clone());
+            dpath.push(config_path.clone());
             dirs.push(dpath);
-            if ver > 0 {
-                dirs.push(format!("v{}", ver).to_owned().into());
-            }
         }
         Self { dirs }
     }
+
+    // TODO: implement this to allow base_dirs in a different root (root_dir), and
+    // versioning option like in https://github.com/overdrop/overdrop-sebool/blob/master/src/od_cfg.rs#L9.
+    // pub fn new(
+    //     root_dir: path::PathBuf,
+    //     base_dirs: &[path::PathBuf],
+    //     config_path: &str,
+    //     version: Option<String>,
+    // ) -> Self {
+
+    // }
+
+    // TODO: add options to exclude/include prefix/file suffix or glob (like in https://github.com/overdrop/overdrop-sebool/blob/master/src/od_cfg.rs#L42)
 
     pub fn scan_unique_files(
         &self,
@@ -43,18 +55,6 @@ impl OverdropConf {
                 };
                 let fpath = entry.path();
                 let fname = entry.file_name().into_string().unwrap();
-
-                // TODO: also have globbing option
-                // TODO: make option
-                // Ignore dotfiles.
-                if fname.starts_with('.') {
-                    continue;
-                };
-                // TODO: make option
-                // Ignore non-TOML.
-                if !fname.ends_with(".toml") {
-                    continue;
-                };
 
                 // Check filetype, ignore non-file.
                 let meta = match entry.metadata() {
@@ -78,5 +78,46 @@ impl OverdropConf {
             }
         }
         Ok(files_map)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_tree_snippet_match(
+        fragments: &collections::BTreeMap<String, path::PathBuf>,
+        prefix: &String,
+        filename: &str,
+        relpath: &str,
+    ) -> () {
+        assert_eq!(
+            fragments
+                .get(&String::from(filename))
+                .unwrap()
+                .strip_prefix(prefix.as_str())
+                .unwrap(),
+            &path::PathBuf::from(relpath)
+        );
+    }
+
+    #[test]
+    fn basic_override() {
+        let treedir = String::from("tests/fixtures/tree-basic");
+        let dirs = vec![
+            path::PathBuf::from(format!("{}/{}", treedir, "usr/lib")),
+            path::PathBuf::from(format!("{}/{}", treedir, "run")),
+            path::PathBuf::from(format!("{}/{}", treedir, "etc")),
+        ];
+        let od_cfg = OverdropConf::new(&dirs, "name/config.d");
+        let fragments = od_cfg.scan_unique_files().unwrap();
+
+        assert_tree_snippet_match(&fragments, &treedir, "01-config-a.toml", "etc/name/config.d/01-config-a.toml");
+        assert_tree_snippet_match(&fragments, &treedir, "02-config-b.toml", "run/name/config.d/02-config-b.toml");
+        assert_tree_snippet_match(&fragments, &treedir, "03-config-c.toml", "etc/name/config.d/03-config-c.toml");
+        assert_tree_snippet_match(&fragments, &treedir, "04-config-d.toml", "usr/lib/name/config.d/04-config-d.toml");
+        assert_tree_snippet_match(&fragments, &treedir, "05-config-e.toml", "etc/name/config.d/05-config-e.toml");
+        assert_tree_snippet_match(&fragments, &treedir, "06-config-f.toml", "run/name/config.d/06-config-f.toml");
+        assert_tree_snippet_match(&fragments, &treedir, "07-config-g.toml", "etc/name/config.d/07-config-g.toml");
     }
 }

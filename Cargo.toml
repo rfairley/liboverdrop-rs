@@ -6,4 +6,5 @@ edition = "2018"
 
 [dependencies]
 error_chain = { package = "error-chain", version = "^0.12.1" }
+filters = "^0.3.0"
 log = "^0.4.6"

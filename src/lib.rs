@@ -46,7 +46,7 @@ impl OverdropConf {
     pub fn scan_unique_files(
         &self,
         allow_hidden: bool,
-        allowed_extensions: Option<&Vec<String>>,
+        allowed_extensions: Option<&Vec<&str>>,
     ) -> errors::Result<collections::BTreeMap<String, path::PathBuf>> {
         let mut files_map = collections::BTreeMap::new();
         for dir in &self.dirs {
@@ -72,8 +72,8 @@ impl OverdropConf {
                 // If extensions are specified, proceed only if filename
                 // has one of the allowed extensions.
                 if let Some(allowed) = allowed_extensions {
-                    if let Some(e) = fname.extension() {
-                        if !allowed.contains(&e) {
+                    if let Some(e) = fpath.extension() {
+                        if !allowed.contains(&e.to_str().unwrap()) {
                             continue;
                         }
                     } else {
@@ -148,12 +148,21 @@ mod tests {
             format!("{}/{}", treedir, "run"),
             format!("{}/{}", treedir, "etc"),
         ];
-        let allowed_extensions = Some(vec![
+        let allowed_extensions = vec![
             "toml",
-        ]);
+        ];
+        let expected_keys = vec![
+            "01-config-a.toml".to_string(),
+            "02-config-b.toml".to_string(),
+            "03-config-c.toml".to_string(),
+            "04-config-d.toml".to_string(),
+            "05-config-e.toml".to_string(),
+            "06-config-f.toml".to_string(),
+            "07-config-g.toml".to_string(),
+        ];
 
         let od_cfg = OverdropConf::new(&dirs, "liboverdrop-rs/config.d-v0.1.0");
-        let fragments = od_cfg.scan_unique_files(false, allowed_extensions).unwrap();
+        let fragments = od_cfg.scan_unique_files(false, Some(&allowed_extensions)).unwrap();
 
         assert_fragments_relpath_match(&fragments, treedir, "01-config-a.toml", "etc/liboverdrop-rs/config.d-v0.1.0/01-config-a.toml");
         assert_fragments_relpath_match(&fragments, treedir, "02-config-b.toml", "run/liboverdrop-rs/config.d-v0.1.0/02-config-b.toml");
@@ -162,6 +171,9 @@ mod tests {
         assert_fragments_relpath_match(&fragments, treedir, "05-config-e.toml", "etc/liboverdrop-rs/config.d-v0.1.0/05-config-e.toml");
         assert_fragments_relpath_match(&fragments, treedir, "06-config-f.toml", "run/liboverdrop-rs/config.d-v0.1.0/06-config-f.toml");
         assert_fragments_relpath_match(&fragments, treedir, "07-config-g.toml", "etc/liboverdrop-rs/config.d-v0.1.0/07-config-g.toml");
+
+        let fragments_keys: Vec<_> = fragments.keys().cloned().collect();
+        assert_eq!(fragments_keys, expected_keys);
     }
 
     #[test]
@@ -174,12 +186,21 @@ mod tests {
         ];
         let config_path = "liboverdrop-rs/config.d-";
         let version = Some("v0.1.0".to_string());
-        let allowed_extensions = Some(vec![
+        let allowed_extensions = vec![
             "toml",
-        ]);
+        ];
+        let expected_keys = vec![
+            "01-config-a.toml".to_string(),
+            "02-config-b.toml".to_string(),
+            "03-config-c.toml".to_string(),
+            "04-config-d.toml".to_string(),
+            "05-config-e.toml".to_string(),
+            "06-config-f.toml".to_string(),
+            "07-config-g.toml".to_string(),
+        ];
 
         let od_cfg = OverdropConf::new_full(treedir, &dirs, config_path, version);
-        let fragments = od_cfg.scan_unique_files(false, allowed_extensions).unwrap();
+        let fragments = od_cfg.scan_unique_files(false, Some(&allowed_extensions)).unwrap();
 
         assert_fragments_relpath_match(&fragments, treedir, "01-config-a.toml", "etc/liboverdrop-rs/config.d-v0.1.0/01-config-a.toml");
         assert_fragments_relpath_match(&fragments, treedir, "02-config-b.toml", "run/liboverdrop-rs/config.d-v0.1.0/02-config-b.toml");
@@ -188,6 +209,9 @@ mod tests {
         assert_fragments_relpath_match(&fragments, treedir, "05-config-e.toml", "etc/liboverdrop-rs/config.d-v0.1.0/05-config-e.toml");
         assert_fragments_relpath_match(&fragments, treedir, "06-config-f.toml", "run/liboverdrop-rs/config.d-v0.1.0/06-config-f.toml");
         assert_fragments_relpath_match(&fragments, treedir, "07-config-g.toml", "etc/liboverdrop-rs/config.d-v0.1.0/07-config-g.toml");
+
+        let fragments_keys: Vec<_> = fragments.keys().cloned().collect();
+        assert_eq!(fragments_keys, expected_keys);
     }
 
     #[test]
@@ -196,12 +220,12 @@ mod tests {
         let dirs = vec![
             format!("{}/{}", treedir, "etc"),
         ];
-        let allowed_extensions = Some(vec![
+        let allowed_extensions = vec![
             "toml",
-        ]);
+        ];
 
         let od_cfg = OverdropConf::new(&dirs, "liboverdrop-rs/config.d-v0.1.0");
-        let fragments = od_cfg.scan_unique_files(false, allowed_extensions).unwrap();
+        let fragments = od_cfg.scan_unique_files(false, Some(&allowed_extensions)).unwrap();
 
         assert_fragments_hit(&fragments, "01-config-a.toml");
         assert_fragments_miss(&fragments, "08-config-h.conf");

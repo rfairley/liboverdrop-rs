@@ -1,10 +1,3 @@
-#[macro_use]
-extern crate error_chain;
-
-mod errors {
-    error_chain!{}
-}
-
 use log::trace;
 use std::{collections, fs, path};
 
@@ -47,7 +40,7 @@ impl OverdropConf {
         &self,
         allow_hidden: bool,
         allowed_extensions: Option<&Vec<&str>>,
-    ) -> errors::Result<collections::BTreeMap<String, path::PathBuf>> {
+    ) -> failure::Fallible<collections::BTreeMap<String, path::PathBuf>> {
         let mut files_map = collections::BTreeMap::new();
         for dir in &self.dirs {
             trace!("Scanning directory '{}'", dir.to_str().unwrap());

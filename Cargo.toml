@@ -1,8 +1,14 @@
 [package]
 name = "liboverdrop"
 version = "0.0.0"
-authors = ["Luca Bruno <luca.bruno@coreos.com>"]
+authors = ["Luca Bruno <luca.bruno@coreos.com>", "Robert Fairley <rfairley@redhat.com>"]
 edition = "2018"
+description = "Library for overlaying and dropping in configuration files"
+documentation = "https://github.com/overdrop/liboverdrop-rs/blob/master/README.md"
+homepage = "https://github.com/overdrop/liboverdrop-rs"
+repository = "https://github.com/overdrop/liboverdrop-rs"
+readme = "README.md"
+license = "MIT/Apache-2.0"
 
 [dependencies]
 log = "^0.4.6"
